@@ -1,0 +1,65 @@
+repo,test_patch,problem_statement,FAIL_TO_PASS,PASS_TO_PASS,language
+laravel/framework,"diff --git a/tests/Support/OnceTest.php b/tests/Support/OnceTest.php
+index 5a7ae6346782..907e7316c884 100644
+--- a/tests/Support/OnceTest.php
++++ b/tests/Support/OnceTest.php
+@@ -343,6 +343,26 @@ public function testGlobalClosures()
+ 
+         $this->assertNotSame($first, $third);
+     }
++
++    public function testMemoizationNullValues()
++    {
++        $instance = new class
++        {
++            public $i = 0;
++
++            public function null()
++            {
++                return once(function () {
++                    $this->i++;
++
++                    return null;
++                });
++            }
++        };
++
++        $this->assertSame($instance->null(), $instance->null());
++        $this->assertSame(1, $instance->i);
++    }
+ }
+ 
+ $letter = 'a';
+","Once function runs repeatedly if cached value is null
+### Laravel Version
+
+11.8.0
+
+### PHP Version
+
+8.2
+
+### Database Driver & Version
+
+_No response_
+
+### Description
+
+The [once](https://laravel.com/docs/11.x/helpers#method-once) function does not use cached value when it's `null`. This is because of the use of `isset` [here](https://github.com/laravel/framework/blob/0e9053da9d709c544200260cc0be5e223ea8ff93/src/Illuminate/Support/Once.php#L60).
+
+If you run the function provided below 2 times, the callback will run twice. I would expect it to only once. I can open a fix PR if you can confirm this is not intended behaviour.
+
+### Steps To Reproduce
+
+```php
+public function calculate()
+{
+    return once(function () {
+        echo 'once';
+
+        return null;
+    });
+}
+```
+
+",['Once > Memoization null values'],"['Once > Result memoization', 'Once > Callable is called once', 'Once > Flush', 'Once > Not memoized when object is garbage collected', 'Once > Is not memoized when callable uses changes', 'Once > Usage of this', 'Once > Invokables', 'Once > First class callable syntax', 'Once > First class callable syntax with array syntax', 'Once > Static memoization', 'Once > Memoization when once is within closure', 'Once > Memoization on global functions', 'Once > Disable', 'Once > Temporary disable', 'Once > Memoization within evals', 'Once > Result is different when called from different closures', 'Once > Result is memoized when called from methods with same name', 'Once > Recursive once calls', 'Once > Global closures']",PHP

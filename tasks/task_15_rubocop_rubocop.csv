@@ -1,0 +1,74 @@
+repo,test_patch,problem_statement,FAIL_TO_PASS,PASS_TO_PASS,language
+rubocop/rubocop,"diff --git a/spec/rubocop/cop/lint/safe_navigation_chain_spec.rb b/spec/rubocop/cop/lint/safe_navigation_chain_spec.rb
+index 693ac865aeed..8714a878ce09 100644
+--- a/spec/rubocop/cop/lint/safe_navigation_chain_spec.rb
++++ b/spec/rubocop/cop/lint/safe_navigation_chain_spec.rb
+@@ -398,6 +398,17 @@
+       RUBY
+     end
+ 
++    it 'registers an offense for safe navigation on the left-hand side of a `-` operator when inside a hash' do
++      expect_offense(<<~RUBY)
++        { foo: a&.baz - 1 }
++                     ^^^^ Do not chain ordinary method call after safe navigation operator.
++      RUBY
++
++      expect_correction(<<~RUBY)
++        { foo: (a&.baz&. - 1) }
++      RUBY
++    end
++
+     context 'proper highlighting' do
+       it 'when there are methods before' do
+         expect_offense(<<~RUBY)
+","Bug on the Lint/SafeNavigationChain
+## Expected behavior
+
+For cases like `foo2`, where keyword arguments are specified, parentheses are required.
+
+```rb
+def foo1(a)
+  a&.baz&.- 1
+end
+
+def foo2(a)
+  a&.bar(baz: (a&.baz&.- 1)) # or `a&.baz&.-(1)`
+end
+```
+
+## Actual behavior
+
+```rb
+def foo1(a)
+  a&.baz - 1
+end
+
+def foo2(a)
+  a&.bar(baz: a&.baz - 1)
+end
+```
+
+When running RuboCop's autocorrect on the code above, the following output was generated. `foo1` is valid Ruby syntax, `foo2` results in a syntax error. In the case of keyword arguments, parentheses cannot be omitted for method calls with arguments.
+
+```rb
+def foo1(a)
+  a&.baz&. - 1
+end
+
+def foo2(a)
+  a&.bar(baz: a&.baz&. - 1) # syntax error, unexpected integer literal, expecting ')'
+end
+```
+
+
+## RuboCop version
+
+```
+root@bf54c2320805:/app# ruby -v
+ruby 3.1.6p260 (2024-05-29 revision a777087be6) [x86_64-linux]
+root@bf54c2320805:/app# rubocop -V
+1.70.0 (using Parser 3.3.6.0, rubocop-ast 1.37.0, analyzing as Ruby 3.4, running on ruby 3.1.6) [x86_64-linux]
+root@bf54c2320805:/app#
+```
+
+",['registers an offense for safe navigation on the left-hand side of a `-` operator when inside a hash'],"['accepts usages of method chain with safe navigation only', 'accepts usages of method chain with safe navigation only with argument', 'accepts usages of ordinary method chain', 'accepts usages of ordinary method chain with argument', 'accepts usages of safe navigation at last only', 'accepts usages of safe navigation at last only with argument', 'accepts usages of safe navigation with & operator', 'accepts usages of safe navigation with && operator', 'accepts usages of safe navigation with == operator', 'accepts usages of safe navigation with === operator', 'accepts usages of safe navigation with `+@` method', 'accepts usages of safe navigation with `-@` method', 'accepts usages of safe navigation with `blank?` method', 'accepts usages of safe navigation with `in?` method', 'accepts usages of safe navigation with `nil?` method', 'accepts usages of safe navigation with `present?` method', 'accepts usages of safe navigation with `to_d` method', 'accepts usages of safe navigation with `try` method', 'accepts usages of safe navigation with assignment method', 'accepts usages of safe navigation with self assignment method', 'accepts usages of safe navigation with | operator', 'accepts usages of safe navigation with || operator', 'does not register an offense when a safe navigation operator is used with a method call as the RHS operand of `&&` for the same receiver', 'registers an offense for [] operator followed by a safe navigation and method chain', 'registers an offense for ordinary method call exists after safe navigation method call', 'registers an offense for ordinary method call exists after safe navigation method call with an argument', 'registers an offense for ordinary method chain exists after safe navigation leading dot method call', 'registers an offense for ordinary method chain exists after safe navigation method call', 'registers an offense for ordinary method chain exists after safe navigation method call with a block', 'registers an offense for ordinary method chain exists after safe navigation method call with a block using numbered parameter', 'registers an offense for ordinary method chain exists after safe navigation method call with a block-pass', 'registers an offense for ordinary method chain exists after safe navigation method call with an argument', 'registers an offense for safe navigation on the right-hand side of the `*`', 'registers an offense for safe navigation on the right-hand side of the `+`', 'registers an offense for safe navigation on the right-hand side of the `-`', 'registers an offense for safe navigation on the right-hand side of the `/`', 'registers an offense for safe navigation with + operator', 'registers an offense for safe navigation with < operator', 'registers an offense for safe navigation with <= operator', 'registers an offense for safe navigation with > operator', 'registers an offense for safe navigation with >= operator', 'registers an offense for safe navigation with [] operator', 'registers an offense for safe navigation with [] operator followed by method chain', 'registers an offense for safe navigation with []= operator', 'registers an offense for safe navigation with `>=` operator as an expression of `&&` operand', 'registers an offense for safe navigation with `>=` operator as an expression of `and` operand', 'registers an offense for safe navigation with `>=` operator as an expression of `or` operand', 'registers an offense for safe navigation with `>=` operator as an expression of `||` operand', 'registers an offense for safe navigation with `>=` operator as an expression of comparison method operand', 'registers an offense for safe navigation with a method call as an expression of `&&` operand', 'registers an offense when a safe navigation operator is used with a method call as both the LHS and RHS operands of `&&` for the same receiver', 'registers an offense when a safe navigation operator is used with a method call as both the LHS and RHS operands of `||` for the same receiver', 'registers an offense when a safe navigation operator is used with a method call as the RHS operand of `&&` for a different receiver', 'registers an offense when a safe navigation operator is used with a method call as the RHS operand of `||` for a different receiver', 'registers an offense when a safe navigation operator is used with a method call as the RHS operand of `||` for the same receiver', 'when in a begin', 'when in a method', 'when there are methods after', 'when there are methods before', 'when used with a modifier if']",Ruby

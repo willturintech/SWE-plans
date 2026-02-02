@@ -1,0 +1,40 @@
+repo,test_patch,problem_statement,FAIL_TO_PASS,PASS_TO_PASS,language
+redis/redis,"diff --git a/tests/unit/introspection-2.tcl b/tests/unit/introspection-2.tcl
+index 478631c3f40..e09b2147b9f 100644
+--- a/tests/unit/introspection-2.tcl
++++ b/tests/unit/introspection-2.tcl
+@@ -89,6 +89,14 @@ start_server {tags {""introspection""}} {
+         assert_equal {key} [r command getkeys xgroup create key groupname $]
+     }
+ 
++    test {COMMAND GETKEYS EVAL with keys} {
++        assert_equal {key} [r command getkeys eval ""return 1"" 1 key]
++    }
++
++    test {COMMAND GETKEYS EVAL without keys} {
++        assert_equal {} [r command getkeys eval ""return 1"" 0]
++    }
++
+     test ""COMMAND LIST FILTERBY ACLCAT"" {
+         set reply [r command list filterby aclcat hyperloglog]
+         assert_equal [lsort $reply] {pfadd pfcount pfdebug pfmerge pfselftest}
+","[BUG] Error from `command getkeys eval ""…"" 0`
+**Describe the bug**
+
+Using `command getkeys` with `eval` returns an error when there are zero keys.
+
+**To reproduce**
+
+```
+127.0.0.1:6379> command getkeys eval ""return 1"" 0
+(error) ERR Invalid arguments specified for command
+```
+
+**Expected behavior**
+
+Returns an empty array.
+
+**Additional information**
+
+This may be intentional, but I couldn't figure out why it would be. The syntax of the command is correct, so at least a separate error should be returned. Is there a reason we should return an error here instead of an empty array of keys?
+",['COMMAND GETKEYS EVAL without keys'],"['TTL, TYPE and EXISTS do not alter the last access time of a key', 'TOUCH alters the last access time of a key', 'TOUCH returns the number of existing keys specified', 'command stats for GEOADD', 'command stats for EXPIRE', 'command stats for BRPOP', 'command stats for MULTI', 'command stats for scripts', 'COMMAND GETKEYS GET', 'COMMAND GETKEYS MEMORY USAGE', 'COMMAND GETKEYS XGROUP', 'COMMAND GETKEYS EVAL with keys', 'COMMAND LIST FILTERBY ACLCAT', 'COMMAND LIST FILTERBY PATTERN']",C
