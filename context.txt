@@ -1,0 +1,8 @@
+Column Name,"Purpose (The ""Role"")"
+instance_id,The Key: The unique identifier for the task.
+problem_statement,The Question: The GitHub issue text (title + body).
+patch,The Answer (Gold): The human-written patch that solved the bug.
+test_patch,The Test Verification: The code for the new tests added to verify the fix.
+FAIL_TO_PASS,The Success Criteria: List of specific test names that must flip from fail to pass.
+PASS_TO_PASS,The Safety Criteria: List of specific test names that must stay passing.
+language,Metadata: Useful for filtering as you requested earlier.
