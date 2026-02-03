@@ -1,0 +1,1 @@
+Failed to generate plan tasks outside of the chat box, Agent was prompted several times to 'create tasks' and 'subtasks' failed each time.
