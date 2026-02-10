@@ -16,7 +16,7 @@ from minisweagent.run.benchmarks.swebench import (
 from minisweagent.utils.log import logger
 from minisweagent.utils.serialize import UNSET, recursive_merge
 
-DEFAULT_OUTPUT_FILE = global_config_dir / "last_swebench_single_run.traj.json"
+DEFAULT_OUTPUT_FILE = "executed_plans/last_swebench_single_run.traj.json"
 DEFAULT_CONFIG_FILE = builtin_config_dir / "benchmarks" / "swebench.yaml"
 
 app = typer.Typer(rich_markup_mode="rich", add_completion=False)
@@ -36,6 +36,47 @@ Examples:
 
 [bold green]-c swebench.yaml -c agent.mode=yolo[/bold green]
 """
+
+import os
+
+def context_search(search_term, directory="plans"):
+    """
+    Finds files where the FILENAME contains 'search_term', 
+    then prints the contents of that file.
+    """
+    # 1. Verification
+    if not os.path.exists(directory):
+        print(f"❌ Error: Directory '{directory}' not found.")
+        return
+
+    matches = 0
+    print(f"🔎 Searching for files named like '*{search_term}*' in '{directory}/'...\n")
+
+    # 2. Walk through directory
+    for root, _, files in os.walk(directory):
+        for filename in files:
+            
+            # Check if search term is in the FILENAME
+            if search_term in filename:
+                filepath = os.path.join(root, filename)
+                matches += 1
+                
+                # 3. Display Output
+                print(f"✅ MATCH FOUND: {filename}")
+                print("=" * 50) # Separator line
+                
+                try:
+                    # Read and print content (handling potential encoding issues)
+                    with open(filepath, 'r', encoding='utf-8', errors='replace') as f:
+                        return f.read()
+                except Exception as e:
+                    print(f"⚠️ Error reading file: {e}")
+                
+                print("=" * 50 + "\n") # End separator
+
+    if matches == 0:
+        print("No matching filenames found.")
+
 
 
 # fmt: off
@@ -93,7 +134,11 @@ def main(
         config.get("agent", {}),
         default_type="interactive",
     )
-    agent.run(instance["problem_statement"])
+    problem_statement = instance["problem_statement"]
+    full_context = context_search(instance["instance_id"])
+    problem_statement += "\n\nFull context:\n" + full_context
+    print(instance["instance_id"])
+    agent.run(problem_statement)
 
 
 if __name__ == "__main__":
