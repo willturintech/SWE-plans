@@ -8,7 +8,7 @@ DELIM="_"
 # 1. Get unique group prefixes (the 'firstword')
 groups=$(ls "$TARGET_DIR" | grep "$DELIM" | cut -d"$DELIM" -f1 | sort -u)
 
-# 2. Find the maximum number of files in any single group to know how many loops to run
+# 2. Find the maximum number of files in any single group
 max_count=0
 for group in $groups; do
     count=$(ls "$TARGET_DIR"/${group}${DELIM}* 2>/dev/null | wc -l)
@@ -20,32 +20,72 @@ done
 echo "Found groups: $groups"
 echo "Max items in a group: $max_count"
 echo "--------------------------------"
+
 count=0
-threshold=100
-# 3. Outer loop: Iterate through indexes (1st, 2nd, 3rd...)
+threshold=6
+start=4
+
+# 3. Outer loop: Round-robin selection
 for ((i=1; i<=max_count; i++)); do
     echo "--- Selection Round #$i ---"
+    
     # 4. Inner loop: Iterate through each group
     for group in $groups; do
-        # Get all files in this group as an array
+        
+        # Get all files in this group
         files=($(ls "$TARGET_DIR"/${group}${DELIM}* | sort))
         ((count+=1))
-        # Calculate array index (i-1 because Bash arrays are 0-indexed)
+        
         idx=$((i-1))
     
-        # Check if this group has a file at the current index
         if [ "$idx" -lt "${#files[@]}" ]; then
             selected_file="${files[$idx]}"
-            selected_file="${selected_file%???}"
-            selected_file="$(basename "$selected_file")" # Remove last 3 characters (e.g., .md)
-            echo "Group [$group] -> Selected: $selected_file"
+            # Strip path and extension to get the Instance ID (e.g., caddy__caddy-4774)
+            filename=$(basename "$selected_file")
+            instance_id="${filename%.*}" 
             
-            # PLACE YOUR LOGIC HERE
-            python  mini-swe-agent/src/minisweagent/run/benchmarks/swebench_single.py   --subset multilingual   --instance $selected_file --output 'executed_plans/eval_1_'$selected_file'.traj.json'  --split test --model gemini/gemini-3-pro-preview --yolo
-            # e.g., python execute_task.py "$selected_file"
+            echo "Group [$group] -> Selected: $instance_id"
+            
+            # --- EXECUTION LOGIC ---
+            if ((count >= start)); then
+                
+                # 1. Construct Docker Image Name
+                # Replaces '__' with '_1776_' to match SWE-bench image naming convention
+                image_tag="${instance_id//__/_1776_}" 
+                image_name="docker.io/swebench/sweb.eval.x86_64.${image_tag}:latest"
+                
+                echo "🐳 Pre-pulling image: $image_name"
+                if docker pull "$image_name"; then
+                    echo "✅ Image pulled successfully."
+                else
+                    echo "⚠️ Pull failed (or image name mismatch). Letting agent try anyway..."
+                fi
+
+                # 2. Run the Agent
+                python mini-swe-agent/src/minisweagent/run/benchmarks/swebench_single.py \
+                    --subset multilingual \
+                    --instance "$instance_id" \
+                    --output "executed_plans/eval_1_${instance_id}.traj.json" \
+                    --split test \
+                    --model gemini/gemini-3-pro-preview \
+                    --yolo
+
+                # 3. Memory Cleanup (Critical for VMs)
+                echo "🧹 Cleaning up image and containers for $instance_id..."
+                
+                # Remove the stopped container created by the run
+                docker container prune -f > /dev/null 2>&1
+                
+                # Remove the large image to free disk space
+                docker rmi "$image_name" > /dev/null 2>&1
+                
+                echo "✨ Cleanup complete."
+            fi
         fi
+        
+        # Stop if we hit the global limit
         if ((count >= threshold)); then
-            echo "threshold reached"
+            echo "🛑 Threshold of $threshold reached. Stopping."
             break 2
         fi
     done
