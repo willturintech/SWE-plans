@@ -21,7 +21,7 @@ echo "Found groups: $groups"
 echo "Max items in a group: $max_count"
 echo "--------------------------------"
 count=0
-threshold=10
+threshold=100
 # 3. Outer loop: Iterate through indexes (1st, 2nd, 3rd...)
 for ((i=1; i<=max_count; i++)); do
     echo "--- Selection Round #$i ---"
