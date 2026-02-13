@@ -22,8 +22,8 @@ echo "Max items in a group: $max_count"
 echo "--------------------------------"
 
 count=0
-threshold=6
-start=4
+threshold=20
+start=9
 
 # 3. Outer loop: Round-robin selection
 for ((i=1; i<=max_count; i++)); do
@@ -44,7 +44,7 @@ for ((i=1; i<=max_count; i++)); do
             filename=$(basename "$selected_file")
             instance_id="${filename%.*}" 
             
-            echo "Group [$group] -> Selected: $instance_id"
+            echo "Task: [$count] -> Group: [$group] -> Selected: $instance_id"
             
             # --- EXECUTION LOGIC ---
             if ((count >= start)); then
